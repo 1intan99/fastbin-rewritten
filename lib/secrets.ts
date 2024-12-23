@@ -5,7 +5,7 @@ import {
   createDecipheriv,
   CipherGCMTypes,
   Utf8AsciiBinaryEncoding,
-  HexBase64BinaryEncoding
+  HexBase64BinaryEncoding,
 } from 'crypto';
 
 const algo: CipherGCMTypes = 'aes-256-gcm';
@@ -14,14 +14,14 @@ const outputEncoding: HexBase64BinaryEncoding = 'hex';
 
 const byteLength = 16;
 
-const key = env('server-secret');
+const key = Buffer.from(env('server-secret'), 'hex');
 
 const encrypt = (k: string, input: string): string => {
   const iv = randomBytes(byteLength);
 
   const cipher = createCipheriv(algo, key, iv);
   const text = JSON.stringify({
-    [`${k}`]: input
+    [`${k}`]: input,
   });
 
   let result = cipher.update(text, inputEncoding, outputEncoding);
@@ -29,7 +29,9 @@ const encrypt = (k: string, input: string): string => {
 
   const authTag = cipher.getAuthTag();
 
-  return iv.toString(outputEncoding) + authTag.toString(outputEncoding) + result;
+  return (
+    iv.toString(outputEncoding) + authTag.toString(outputEncoding) + result
+  );
 };
 
 const decrypt = (k: string, secret: string): string => {
@@ -44,13 +46,14 @@ const decrypt = (k: string, secret: string): string => {
   const decipher = createDecipheriv(algo, key, Buffer.from(iv, outputEncoding));
   decipher.setAuthTag(Buffer.from(authtag, outputEncoding));
 
-  let result = decipher.update(Buffer.from(encrypted, outputEncoding), outputEncoding, inputEncoding);
+  let result = decipher.update(
+    Buffer.from(encrypted, outputEncoding),
+    outputEncoding,
+    inputEncoding,
+  );
   result += decipher.final(inputEncoding);
 
   return JSON.parse(result)[k];
 };
 
-export {
-  encrypt,
-  decrypt
-};
+export { encrypt, decrypt };
